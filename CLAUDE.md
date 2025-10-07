@@ -79,7 +79,11 @@ All state is managed locally in `App.tsx` using React hooks:
 - Merge channels and export via canvas.toDataURL()
 - CRITICAL: Delete all Mat objects to avoid memory leaks
 
-**Background detection**: Edge sampling strategy - samples pixels from all four edges at intervals, averages to find dominant background color
+**Background removal algorithms** (use continuous region detection, not global color matching):
+- **Solid background**: Uses magic wand style flood fill from 8 seed points (4 corners + 4 edge midpoints). Only removes pixels that are part of continuous regions connected to edges. This prevents removing foreground objects that happen to match the background color.
+- **Checkered pattern**: First samples corner/edge pixels to detect checker colors, then uses magic wand flood fill from edge points that match those colors. Only removes continuous checkered regions connected to edges.
+- Both algorithms use iterative stack-based flood fill with a visited array to track processed pixels
+- **Preview mode**: `generatePreviewMask()` runs the same algorithms but creates a red overlay (50% opacity) instead of transparency, allowing users to see what will be removed before processing
 
 ## Deployment
 
@@ -95,3 +99,4 @@ GitHub Actions workflow deploys to GitHub Pages on push to main:
 - TailwindCSS 4 for styling
 - OpenCV.js via `opencv-react-ts` wrapper
 - ESLint with TypeScript and React plugins
+- update context and while pattern matching avoid using indentations in the pattern to check for

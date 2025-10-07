@@ -137,7 +137,17 @@ export const ResultModal: React.FC<ResultModalProps> = ({ imageSrc, open, onClos
 			canvas.height = cropArea.height;
 			const ctx = canvas.getContext('2d');
 			if (ctx) {
-				ctx.drawImage(img, cropArea.x, cropArea.y, cropArea.width, cropArea.height, 0, 0, cropArea.width, cropArea.height);
+				ctx.drawImage(
+					img,
+					cropArea.x,
+					cropArea.y,
+					cropArea.width,
+					cropArea.height,
+					0,
+					0,
+					cropArea.width,
+					cropArea.height,
+				);
 				onDownload(canvas.toDataURL('image/png'));
 			}
 		};
@@ -146,24 +156,24 @@ export const ResultModal: React.FC<ResultModalProps> = ({ imageSrc, open, onClos
 	if (!open) return null;
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-			<div className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 rounded-2xl shadow-2xl p-6 max-w-5xl w-full relative border border-white/20">
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+			<div className="bg-white rounded-2xl shadow-2xl p-6 max-w-5xl w-full relative border border-gray-200">
 				{/* Close button */}
 				<button
-					className="absolute top-4 right-4 text-white/60 hover:text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-all duration-200 z-10"
+					className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-3xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-all duration-200 z-10"
 					onClick={onClose}>
 					×
 				</button>
 
-				<h2 className="text-3xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-cyan-200 to-purple-200">
+				<h2 className="text-3xl font-bold mb-6 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
 					Processed Image
 				</h2>
 
 				<div className="flex flex-col gap-6">
 					{/* Image with crop overlay */}
-					<div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+					<div className="bg-gray-50 backdrop-blur-sm border border-gray-200 rounded-xl p-4">
 						<div className="mb-3 text-center">
-							<p className="text-blue-200/80 text-sm">
+							<p className="text-gray-700 text-sm">
 								<span className="font-semibold">Click and drag</span> on the image to select crop area.
 								<span className="block mt-1">Drag the corners to resize.</span>
 							</p>
@@ -178,7 +188,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({ imageSrc, open, onClos
 							<img
 								src={imageSrc}
 								alt="Processed"
-								className="max-h-[500px] w-auto rounded-lg border border-white/20"
+								className="max-h-[500px] w-auto rounded-lg border border-gray-300"
 								draggable={false}
 							/>
 
@@ -219,10 +229,19 @@ export const ResultModal: React.FC<ResultModalProps> = ({ imageSrc, open, onClos
 					<div className="flex flex-wrap gap-3 justify-center">
 						<button
 							onClick={resetCrop}
-							className="group relative overflow-hidden bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl border border-white/20 hover:border-white/40 transition-all duration-200 font-semibold">
+							className="group relative overflow-hidden bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl border border-gray-300 hover:border-gray-400 transition-all duration-200 font-semibold">
 							<span className="relative z-10 flex items-center gap-2">
-								<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+								<svg
+									className="w-5 h-5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor">
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+									/>
 								</svg>
 								Reset Crop
 							</span>
@@ -232,14 +251,23 @@ export const ResultModal: React.FC<ResultModalProps> = ({ imageSrc, open, onClos
 							onClick={handleDownloadClick}
 							className="group relative overflow-hidden">
 							{/* Animated glow */}
-							<div className="absolute inset-0 bg-gradient-to-r from-green-600 via-emerald-500 to-teal-600 rounded-xl opacity-100 group-hover:opacity-0 transition-opacity duration-300"></div>
-							<div className="absolute inset-0 bg-gradient-to-r from-teal-600 via-green-500 to-emerald-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-							<div className="absolute -inset-1 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-xl blur-lg opacity-0 group-hover:opacity-75 transition-opacity duration-300"></div>
+							<div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl opacity-100 group-hover:opacity-0 transition-opacity duration-300"></div>
+							<div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+							<div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl blur-lg opacity-0 group-hover:opacity-75 transition-opacity duration-300"></div>
 
 							{/* Button content */}
 							<div className="relative flex items-center justify-center gap-2 px-8 py-3 text-white font-bold text-lg rounded-xl transition-all duration-300 group-hover:scale-[1.02] group-active:scale-[0.98]">
-								<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+								<svg
+									className="w-5 h-5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor">
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+									/>
 								</svg>
 								<span>Download PNG</span>
 							</div>

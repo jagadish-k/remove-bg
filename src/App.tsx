@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { OpenCvProvider, useOpenCv } from 'opencv-react-ts';
 import { ImageUploader } from './components/ImageUploader';
 import { ProcessingControls } from './components/ProcessingControls';
-import { processImage, type ProcessingOptions } from './utils/imageProcessor';
+import { processImage, generatePreviewMask, type ProcessingOptions } from './utils/imageProcessor';
 import { ResultModal } from './components/ResultModal';
 
 function AppContent() {
@@ -20,24 +20,55 @@ function AppContent() {
 	const [error, setError] = useState<string | null>(null);
 	const [options, setOptions] = useState<ProcessingOptions>({
 		removeCheckered: true,
-		removeSolid: true,
-		removeShadow: false,
 		tolerance: 20,
+		selectedColors: [],
 	});
 	const [modalOpen, setModalOpen] = useState(false);
+	const [previewMask, setPreviewMask] = useState<string | null>(null);
+	const [showPreview, setShowPreview] = useState(false);
 
 	const handleImageLoad = useCallback((image: HTMLImageElement, file: File) => {
 		setOriginalImage(image);
 		setFileName(file.name);
 		setProcessedImage(null);
 		setError(null);
+		setPreviewMask(null);
+		setShowPreview(false);
 	}, []);
+
+	const handlePreview = useCallback(() => {
+		if (!originalImage || !loaded || !cv) return;
+
+		// Toggle preview
+		if (showPreview) {
+			setShowPreview(false);
+			setPreviewMask(null);
+			return;
+		}
+
+		setProcessing(true);
+		setError(null);
+		setTimeout(() => {
+			try {
+				const mask = generatePreviewMask(cv, originalImage, options);
+				setPreviewMask(mask);
+				setShowPreview(true);
+			} catch (err) {
+				console.error('Preview error:', err);
+				const details = err instanceof Error && err.message ? ` Details: ${err.message}` : '';
+				setError(`Error generating preview. Please try a different image or adjust settings.${details}`);
+			} finally {
+				setProcessing(false);
+			}
+		}, 100);
+	}, [originalImage, options, loaded, cv, showPreview]);
 
 	const handleProcess = useCallback(() => {
 		if (!originalImage || !loaded || !cv) return;
 
 		setProcessing(true);
 		setError(null);
+		setShowPreview(false);
 		setTimeout(() => {
 			try {
 				const result = processImage(cv, originalImage, options);
@@ -67,23 +98,94 @@ function AppContent() {
 		[processedImage, fileName],
 	);
 
+	// Auto-regenerate preview when options change
+	useEffect(() => {
+		if (!showPreview || !originalImage || !loaded || !cv || processing) return;
+
+		const timeoutId = setTimeout(() => {
+			try {
+				const mask = generatePreviewMask(cv, originalImage, options);
+				setPreviewMask(mask);
+			} catch (err) {
+				console.error('Preview regeneration error:', err);
+			}
+		}, 300); // Debounce for 300ms
+
+		return () => clearTimeout(timeoutId);
+	}, [options, showPreview, originalImage, loaded, cv, processing]);
+
+	// Handle color picking from image
+	const handleImageClick = useCallback(
+		(event: React.MouseEvent<HTMLImageElement>) => {
+			if (!originalImage || !cv || !loaded) return;
+
+			const img = event.currentTarget;
+			const rect = img.getBoundingClientRect();
+			const x = Math.floor(((event.clientX - rect.left) / rect.width) * originalImage.naturalWidth);
+			const y = Math.floor(((event.clientY - rect.top) / rect.height) * originalImage.naturalHeight);
+
+			try {
+				const src = cv.imread(originalImage);
+				if (x >= 0 && x < src.cols && y >= 0 && y < src.rows) {
+					const pixel = src.ucharPtr(y, x);
+					const r = pixel[0];
+					const g = pixel[1];
+					const b = pixel[2];
+
+					// Add color if not already selected (check inside state updater for latest state)
+					const newColor = { r, g, b };
+
+					setOptions((prev) => {
+						// Check if color already exists using latest state
+						const exists = prev.selectedColors?.some(
+							(c) => Math.abs(c.r - r) + Math.abs(c.g - g) + Math.abs(c.b - b) < 15,
+						);
+
+						if (exists) {
+							console.log('Color already selected:', newColor);
+							return prev; // No change
+						}
+
+						console.log('Adding new color:', newColor, 'Total colors:', (prev.selectedColors?.length || 0) + 1);
+						return {
+							...prev,
+							selectedColors: [...(prev.selectedColors || []), newColor],
+						};
+					});
+				}
+				src.delete();
+			} catch (err) {
+				console.error('Color picking error:', err);
+			}
+		},
+		[originalImage, cv, loaded],
+	);
+
+	// Remove selected color
+	const handleRemoveColor = useCallback((index: number) => {
+		setOptions((prev) => ({
+			...prev,
+			selectedColors: prev.selectedColors?.filter((_, i) => i !== index) || [],
+		}));
+	}, []);
+
 	return (
-		<div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden ">
+		<div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 relative overflow-hidden">
 			{/* Animated background elements */}
 			<div className="absolute inset-0 overflow-hidden pointer-events-none">
-				<div className="absolute w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -top-48 -left-48 animate-pulse"></div>
+				<div className="absolute w-96 h-96 bg-blue-400/20 rounded-full blur-3xl -top-48 -left-48 animate-pulse"></div>
 				<div
-					className="absolute w-96 h-96 bg-purple-500/10 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse"
+					className="absolute w-96 h-96 bg-purple-400/20 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse"
 					style={{ animationDelay: '1s' }}></div>
 			</div>
 
 			<div className="relative z-10 min-h-screen flex flex-col">
 				{/* Header */}
 				<header className="w-full py-8 px-4 text-center">
-					<h1 className="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-cyan-200 to-purple-200 mb-3 tracking-tight drop-shadow-2xl">
+					<h1 className="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 mb-3 tracking-tight drop-shadow-lg">
 						Background Remover
 					</h1>
-					<p className="text-lg text-blue-100/90 max-w-2xl mx-auto">
+					<p className="text-lg text-gray-700 max-w-2xl mx-auto font-medium">
 						Remove checkered patterns and backgrounds from your images — 100% client-side
 					</p>
 				</header>
@@ -92,22 +194,22 @@ function AppContent() {
 				<main className="flex-1 flex items-center justify-center px-4 py-8">
 					{!loaded ? (
 						<div className="text-center">
-							<div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mb-6"></div>
-							<p className="text-blue-100 text-xl font-semibold">Loading OpenCV...</p>
-							<p className="text-blue-200/70 mt-2">This may take a moment on first load</p>
+							<div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mb-6"></div>
+							<p className="text-gray-800 text-xl font-semibold">Loading OpenCV...</p>
+							<p className="text-gray-600 mt-2">This may take a moment on first load</p>
 						</div>
 					) : !originalImage ? (
 						/* Initial Upload State - Centered */
 						<div className="w-full max-w-2xl mx-auto">
 							<div className="text-center mb-8">
-								<h2 className="text-3xl font-bold text-white mb-3">Get Started</h2>
-								<p className="text-blue-200/80 text-lg">Upload an image to remove its background instantly</p>
+								<h2 className="text-3xl font-bold text-gray-800 mb-3">Get Started</h2>
+								<p className="text-gray-600 text-lg">Upload an image to remove its background instantly</p>
 							</div>
 							<ImageUploader onImageLoad={handleImageLoad} />
-							<div className="mt-12 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-								<h3 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+							<div className="mt-12 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg">
+								<h3 className="text-gray-800 font-semibold text-lg mb-4 flex items-center gap-2">
 									<svg
-										className="w-5 h-5"
+										className="w-5 h-5 text-blue-600"
 										fill="currentColor"
 										viewBox="0 0 20 20">
 										<path
@@ -118,17 +220,17 @@ function AppContent() {
 									</svg>
 									How it works
 								</h3>
-								<ul className="text-blue-200/80 space-y-3">
+								<ul className="text-gray-700 space-y-3">
 									<li className="flex items-start gap-3">
-										<span className="text-blue-400 font-bold">1.</span>
+										<span className="text-blue-600 font-bold">1.</span>
 										<span>Upload a PNG or JPG image with a checkered or solid background</span>
 									</li>
 									<li className="flex items-start gap-3">
-										<span className="text-blue-400 font-bold">2.</span>
+										<span className="text-blue-600 font-bold">2.</span>
 										<span>Choose processing options and adjust tolerance</span>
 									</li>
 									<li className="flex items-start gap-3">
-										<span className="text-blue-400 font-bold">3.</span>
+										<span className="text-blue-600 font-bold">3.</span>
 										<span>Preview, crop if needed, and download as transparent PNG</span>
 									</li>
 								</ul>
@@ -140,40 +242,50 @@ function AppContent() {
 							{error && (
 								<div
 									role="alert"
-									className="bg-red-500/20 backdrop-blur-sm border border-red-400/50 text-red-100 px-6 py-4 rounded-xl mb-6 shadow-lg">
+									className="bg-red-50 backdrop-blur-sm border border-red-300 text-red-800 px-6 py-4 rounded-xl mb-6 shadow-lg">
 									<p className="font-semibold flex items-center gap-2">
-										<span className="inline-block h-3 w-3 rounded-full bg-red-400 animate-pulse"></span>
+										<span className="inline-block h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
 										Processing failed
 									</p>
-									<p className="text-sm mt-1 text-red-200">{error}</p>
+									<p className="text-sm mt-1 text-red-700">{error}</p>
 								</div>
 							)}
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 								{/* Left: Preview */}
 								<div className="flex flex-col gap-4 min-w-0">
-									<div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-2xl">
+									<div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-xl">
 										<div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-											<h3 className="text-white font-semibold text-lg">Original Image</h3>
+											<h3 className="text-gray-800 font-semibold text-lg">Original Image</h3>
 											<button
 												onClick={handleReset}
-												className="text-sm text-blue-300 hover:text-blue-100 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-all duration-200 border border-white/10 hover:border-white/20 whitespace-nowrap">
+												className="text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-all duration-200 border border-blue-200 hover:border-blue-300 whitespace-nowrap">
 												Change Image
 											</button>
 										</div>
-										<div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl border border-white/10 overflow-hidden flex items-center justify-center min-h-[300px]">
+										<div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center min-h-[300px]">
 											<img
-												src={originalImage.src}
+												src={showPreview && previewMask ? previewMask : originalImage.src}
 												alt="Original"
-												className="max-w-full h-auto max-h-[600px] object-contain"
+												className="max-w-full h-auto max-h-[600px] object-contain cursor-crosshair"
+												onClick={handleImageClick}
+												title="Click to pick a background color to remove"
 											/>
+											{showPreview && (
+												<div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-lg">
+													Preview Mode
+												</div>
+											)}
+											<div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded shadow-lg">
+												Click to pick color
+											</div>
 										</div>
-										<p className="text-blue-200/60 text-sm mt-3 truncate text-center">{fileName}</p>
+										<p className="text-gray-600 text-sm mt-3 truncate text-center">{fileName}</p>
 									</div>
 									{processing && (
-										<div className="bg-blue-500/10 backdrop-blur-sm border border-blue-400/30 rounded-xl p-6 text-center">
-											<div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mb-3"></div>
-											<p className="text-blue-100 font-semibold">Processing image...</p>
-											<p className="text-blue-200/70 text-sm mt-1">This may take a few seconds</p>
+										<div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-xl p-6 text-center">
+											<div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-3"></div>
+											<p className="text-gray-800 font-semibold">Processing image...</p>
+											<p className="text-gray-600 text-sm mt-1">This may take a few seconds</p>
 										</div>
 									)}
 								</div>
@@ -184,12 +296,15 @@ function AppContent() {
 										options={options}
 										onOptionsChange={setOptions}
 										onProcess={handleProcess}
+										onPreview={handlePreview}
 										disabled={processing}
+										showingPreview={showPreview}
+										onRemoveColor={handleRemoveColor}
 									/>
-									<div className="bg-blue-500/10 backdrop-blur-sm border border-blue-400/30 rounded-xl p-5">
-										<h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+									<div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-xl p-5 shadow-md">
+										<h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
 											<svg
-												className="w-5 h-5 text-blue-300 flex-shrink-0"
+												className="w-5 h-5 text-blue-600 flex-shrink-0"
 												fill="currentColor"
 												viewBox="0 0 20 20">
 												<path
@@ -200,21 +315,21 @@ function AppContent() {
 											</svg>
 											Tips
 										</h4>
-										<ul className="text-sm text-blue-200/80 space-y-2">
+										<ul className="text-sm text-gray-700 space-y-2">
 											<li className="flex items-start gap-2">
-												<span className="text-blue-400 mt-0.5">•</span>
+												<span className="text-blue-600 mt-0.5">•</span>
 												<span>Works best with standard gray checkered patterns</span>
 											</li>
 											<li className="flex items-start gap-2">
-												<span className="text-blue-400 mt-0.5">•</span>
+												<span className="text-blue-600 mt-0.5">•</span>
 												<span>Adjust tolerance if background isn't fully removed</span>
 											</li>
 											<li className="flex items-start gap-2">
-												<span className="text-blue-400 mt-0.5">•</span>
+												<span className="text-blue-600 mt-0.5">•</span>
 												<span>Shadow removal works best on light backgrounds</span>
 											</li>
 											<li className="flex items-start gap-2">
-												<span className="text-blue-400 mt-0.5">•</span>
+												<span className="text-blue-600 mt-0.5">•</span>
 												<span>All processing happens in your browser — no uploads!</span>
 											</li>
 										</ul>
@@ -233,7 +348,7 @@ function AppContent() {
 				/>
 
 				{/* Footer */}
-				<footer className="w-full text-center py-6 text-sm text-blue-200/60 border-t border-white/10">
+				<footer className="w-full text-center py-6 text-sm text-gray-600 border-t border-gray-200 bg-white/50">
 					<p>Built with React, TypeScript, and OpenCV.js • All processing is done locally in your browser</p>
 				</footer>
 			</div>

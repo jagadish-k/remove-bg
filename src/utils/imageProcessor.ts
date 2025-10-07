@@ -1,8 +1,180 @@
 export interface ProcessingOptions {
 	removeCheckered: boolean;
-	removeSolid: boolean;
-	removeShadow: boolean;
 	tolerance: number;
+	selectedColors?: Array<{ r: number; g: number; b: number }>;
+}
+
+export const generatePreviewMask = (cv: any, imageElement: HTMLImageElement, options: ProcessingOptions): string => {
+	if (!cv) {
+		throw new Error('OpenCV is not loaded yet. Please wait a moment and try again.');
+	}
+
+	const src = cv.imread(imageElement);
+	try {
+		// Convert to RGBA if not already
+		if (src.channels() === 3) {
+			cv.cvtColor(src, src, cv.COLOR_RGB2RGBA);
+		}
+
+		// Create mask to track what will be removed
+		const mask = new cv.Mat(src.rows, src.cols, cv.CV_8UC1, new cv.Scalar(0));
+
+		// Process checkered patterns (automatic detection only)
+		if (options.removeCheckered) {
+			const colors = sampleCheckerColors(src);
+			if (colors.length > 0) {
+				const visited = new Array(src.rows).fill(0).map(() => new Array(src.cols).fill(false));
+				const seedPoints = [
+					{ x: 0, y: 0 },
+					{ x: src.cols - 1, y: 0 },
+					{ x: 0, y: src.rows - 1 },
+					{ x: src.cols - 1, y: src.rows - 1 },
+					{ x: Math.floor(src.cols / 2), y: 0 },
+					{ x: Math.floor(src.cols / 2), y: src.rows - 1 },
+					{ x: 0, y: Math.floor(src.rows / 2) },
+					{ x: src.cols - 1, y: Math.floor(src.rows / 2) },
+				];
+
+				for (const seedPoint of seedPoints) {
+					if (seedPoint.x < 0 || seedPoint.x >= src.cols || seedPoint.y < 0 || seedPoint.y >= src.rows) continue;
+					if (visited[seedPoint.y][seedPoint.x]) continue;
+
+					const pixel = src.ucharPtr(seedPoint.y, seedPoint.x);
+					const seedR = pixel[0];
+					const seedG = pixel[1];
+					const seedB = pixel[2];
+
+					// Check if seed matches any checkered color
+					let matchesColor = false;
+					for (const color of colors) {
+						const diff = Math.abs(seedR - color.r) + Math.abs(seedG - color.g) + Math.abs(seedB - color.b);
+						if (diff < options.tolerance * 3) {
+							matchesColor = true;
+							break;
+						}
+					}
+
+					if (matchesColor) {
+						magicWandFillMask(src, mask, visited, seedPoint.x, seedPoint.y, seedR, seedG, seedB, options.tolerance);
+					}
+				}
+			}
+		}
+
+		// Process user-selected colors separately (with higher tolerance for blur/anti-aliasing)
+		if (options.selectedColors && options.selectedColors.length > 0) {
+			const visited = new Array(src.rows).fill(0).map(() => new Array(src.cols).fill(false));
+			const seedPoints = [
+				{ x: 0, y: 0 },
+				{ x: src.cols - 1, y: 0 },
+				{ x: 0, y: src.rows - 1 },
+				{ x: src.cols - 1, y: src.rows - 1 },
+				{ x: Math.floor(src.cols / 2), y: 0 },
+				{ x: Math.floor(src.cols / 2), y: src.rows - 1 },
+				{ x: 0, y: Math.floor(src.rows / 2) },
+				{ x: src.cols - 1, y: Math.floor(src.rows / 2) },
+			];
+
+			for (const seedPoint of seedPoints) {
+				if (seedPoint.x < 0 || seedPoint.x >= src.cols || seedPoint.y < 0 || seedPoint.y >= src.rows) continue;
+				if (visited[seedPoint.y][seedPoint.x]) continue;
+
+				const pixel = src.ucharPtr(seedPoint.y, seedPoint.x);
+				const seedR = pixel[0];
+				const seedG = pixel[1];
+				const seedB = pixel[2];
+
+				// Check if seed matches any user-selected color (with higher tolerance)
+				let matchesColor = false;
+				for (const color of options.selectedColors) {
+					const diff = Math.abs(seedR - color.r) + Math.abs(seedG - color.g) + Math.abs(seedB - color.b);
+					if (diff < options.tolerance * 5) {
+						matchesColor = true;
+						break;
+					}
+				}
+
+				if (matchesColor) {
+					// Use higher tolerance for flood fill to catch blur/anti-aliasing
+					magicWandFillMask(src, mask, visited, seedPoint.x, seedPoint.y, seedR, seedG, seedB, options.tolerance * 1.5);
+				}
+			}
+		}
+
+		// Create red overlay for masked areas
+		const overlay = new cv.Mat(src.rows, src.cols, cv.CV_8UC4);
+		for (let y = 0; y < src.rows; y++) {
+			for (let x = 0; x < src.cols; x++) {
+				const srcPixel = src.ucharPtr(y, x);
+				const overlayPixel = overlay.ucharPtr(y, x);
+				const maskValue = mask.ucharPtr(y, x)[0];
+
+				if (maskValue === 255) {
+					// Red overlay with 50% opacity
+					overlayPixel[0] = Math.floor(srcPixel[0] * 0.5 + 255 * 0.5);
+					overlayPixel[1] = Math.floor(srcPixel[1] * 0.5);
+					overlayPixel[2] = Math.floor(srcPixel[2] * 0.5);
+					overlayPixel[3] = 255;
+				} else {
+					overlayPixel[0] = srcPixel[0];
+					overlayPixel[1] = srcPixel[1];
+					overlayPixel[2] = srcPixel[2];
+					overlayPixel[3] = srcPixel[3] || 255;
+				}
+			}
+		}
+
+		const canvas = document.createElement('canvas');
+		canvas.width = imageElement.naturalWidth || src.cols;
+		canvas.height = imageElement.naturalHeight || src.rows;
+		cv.imshow(canvas, overlay);
+		const dataUrl = canvas.toDataURL('image/png');
+
+		mask.delete();
+		overlay.delete();
+		return dataUrl;
+	} finally {
+		src.delete();
+	}
+};
+
+function magicWandFillMask(
+	src: any,
+	mask: any,
+	visited: boolean[][],
+	startX: number,
+	startY: number,
+	targetR: number,
+	targetG: number,
+	targetB: number,
+	tolerance: number,
+): void {
+	const stack = [{ x: startX, y: startY }];
+	const rows = src.rows;
+	const cols = src.cols;
+
+	while (stack.length > 0) {
+		const { x, y } = stack.pop()!;
+
+		if (x < 0 || x >= cols || y < 0 || y >= rows) continue;
+		if (visited[y][x]) continue;
+
+		const pixel = src.ucharPtr(y, x);
+		const r = pixel[0];
+		const g = pixel[1];
+		const b = pixel[2];
+
+		const diff = Math.abs(r - targetR) + Math.abs(g - targetG) + Math.abs(b - targetB);
+		if (diff > tolerance * 3) continue;
+
+		visited[y][x] = true;
+		mask.ucharPtr(y, x)[0] = 255;
+
+		stack.push({ x: x + 1, y });
+		stack.push({ x: x - 1, y });
+		stack.push({ x, y: y + 1 });
+		stack.push({ x, y: y - 1 });
+	}
 }
 
 export const processImage = (cv: any, imageElement: HTMLImageElement, options: ProcessingOptions): string => {
@@ -24,17 +196,7 @@ export const processImage = (cv: any, imageElement: HTMLImageElement, options: P
 
 		// Detect and remove checkered pattern
 		if (options.removeCheckered) {
-			removeCheckeredPattern(cv, src, alpha, options.tolerance);
-		}
-
-		// Remove solid background (detect dominant color at edges)
-		if (options.removeSolid) {
-			removeSolidBackground(cv, src, alpha, options.tolerance);
-		}
-
-		// Remove shadows (detect darker regions)
-		if (options.removeShadow) {
-			removeShadows(cv, src, alpha, options.tolerance);
+			removeCheckeredPattern(cv, src, alpha, options.tolerance, options.selectedColors);
 		}
 
 		// Apply alpha channel
@@ -61,27 +223,128 @@ export const processImage = (cv: any, imageElement: HTMLImageElement, options: P
 	}
 };
 
-function removeCheckeredPattern(_cv: any, src: any, alpha: any, tolerance: number): void {
-	// Sample corner pixels to detect checkered pattern colors
+function removeCheckeredPattern(
+	cv: any,
+	src: any,
+	alpha: any,
+	tolerance: number,
+	selectedColors?: Array<{ r: number; g: number; b: number }>,
+): void {
+	// Sample corner pixels to detect checkered pattern colors (automatic detection only)
 	const colors = sampleCheckerColors(src);
+	if (colors.length === 0) return;
 
-	// Remove pixels matching checker pattern
-	for (let y = 0; y < src.rows; y++) {
-		for (let x = 0; x < src.cols; x++) {
-			const pixel = src.ucharPtr(y, x);
-			const r = pixel[0];
-			const g = pixel[1];
-			const b = pixel[2];
+	// Create a visited mask to track which pixels we've already processed
+	const visited = new Array(src.rows).fill(0).map(() => new Array(src.cols).fill(false));
 
-			// Check if pixel matches any checker color
-			for (const color of colors) {
-				const diff = Math.abs(r - color.r) + Math.abs(g - color.g) + Math.abs(b - color.b);
-				if (diff < tolerance * 3) {
-					alpha.ucharPtr(y, x)[0] = 0;
+	// Seed points to start flood fill from (edges)
+	const seedPoints = [
+		{ x: 0, y: 0 },
+		{ x: src.cols - 1, y: 0 },
+		{ x: 0, y: src.rows - 1 },
+		{ x: src.cols - 1, y: src.rows - 1 },
+		{ x: Math.floor(src.cols / 2), y: 0 },
+		{ x: Math.floor(src.cols / 2), y: src.rows - 1 },
+		{ x: 0, y: Math.floor(src.rows / 2) },
+		{ x: src.cols - 1, y: Math.floor(src.rows / 2) },
+	];
+
+	// Flood fill from each seed point
+	for (const seedPoint of seedPoints) {
+		if (seedPoint.x < 0 || seedPoint.x >= src.cols || seedPoint.y < 0 || seedPoint.y >= src.rows) continue;
+		if (visited[seedPoint.y][seedPoint.x]) continue;
+
+		const pixel = src.ucharPtr(seedPoint.y, seedPoint.x);
+		const seedR = pixel[0];
+		const seedG = pixel[1];
+		const seedB = pixel[2];
+
+		// Check if seed matches any checkered color
+		let matchesChecker = false;
+		for (const color of colors) {
+			const diff = Math.abs(seedR - color.r) + Math.abs(seedG - color.g) + Math.abs(seedB - color.b);
+			if (diff < tolerance * 3) {
+				matchesChecker = true;
+				break;
+			}
+		}
+
+		if (matchesChecker) {
+			// Magic wand style flood fill
+			magicWandFill(src, alpha, visited, seedPoint.x, seedPoint.y, seedR, seedG, seedB, tolerance);
+		}
+	}
+
+	// Process user-selected colors separately with higher tolerance
+	if (selectedColors && selectedColors.length > 0) {
+		const userVisited = new Array(src.rows).fill(0).map(() => new Array(src.cols).fill(false));
+		for (const seedPoint of seedPoints) {
+			if (seedPoint.x < 0 || seedPoint.x >= src.cols || seedPoint.y < 0 || seedPoint.y >= src.rows) continue;
+			if (userVisited[seedPoint.y][seedPoint.x]) continue;
+
+			const pixel = src.ucharPtr(seedPoint.y, seedPoint.x);
+			const seedR = pixel[0];
+			const seedG = pixel[1];
+			const seedB = pixel[2];
+
+			// Check if seed matches any user-selected color
+			let matchesUserColor = false;
+			for (const color of selectedColors) {
+				const diff = Math.abs(seedR - color.r) + Math.abs(seedG - color.g) + Math.abs(seedB - color.b);
+				if (diff < tolerance * 5) {
+					matchesUserColor = true;
 					break;
 				}
 			}
+
+			if (matchesUserColor) {
+				// Use higher tolerance for user colors to catch blur/anti-aliasing
+				magicWandFill(src, alpha, userVisited, seedPoint.x, seedPoint.y, seedR, seedG, seedB, tolerance * 1.5);
+			}
 		}
+	}
+}
+
+function magicWandFill(
+	src: any,
+	alpha: any,
+	visited: boolean[][],
+	startX: number,
+	startY: number,
+	targetR: number,
+	targetG: number,
+	targetB: number,
+	tolerance: number,
+): void {
+	const stack = [{ x: startX, y: startY }];
+	const rows = src.rows;
+	const cols = src.cols;
+
+	while (stack.length > 0) {
+		const { x, y } = stack.pop()!;
+
+		// Bounds check
+		if (x < 0 || x >= cols || y < 0 || y >= rows) continue;
+		if (visited[y][x]) continue;
+
+		const pixel = src.ucharPtr(y, x);
+		const r = pixel[0];
+		const g = pixel[1];
+		const b = pixel[2];
+
+		// Color similarity check
+		const diff = Math.abs(r - targetR) + Math.abs(g - targetG) + Math.abs(b - targetB);
+		if (diff > tolerance * 3) continue;
+
+		// Mark as visited and transparent
+		visited[y][x] = true;
+		alpha.ucharPtr(y, x)[0] = 0;
+
+		// Add neighbors to stack (4-connectivity)
+		stack.push({ x: x + 1, y });
+		stack.push({ x: x - 1, y });
+		stack.push({ x, y: y + 1 });
+		stack.push({ x, y: y - 1 });
 	}
 }
 
@@ -135,141 +398,4 @@ function clusterColors(
 	}
 
 	return clusters;
-}
-
-function removeSolidBackground(cv: any, src: any, alpha: any, tolerance: number): void {
-	// Sample edge pixels to detect background color
-	const bgColor = detectBackgroundColor(src);
-
-	// Use flood fill from corners - mask must be (rows+2, cols+2) CV_8UC1
-	const mask = new cv.Mat(src.rows + 2, src.cols + 2, cv.CV_8UC1, new cv.Scalar(0));
-	const fillColor = new cv.Scalar(255, 255, 255, 255);
-	const seedPoint = new cv.Point(0, 0);
-
-	// Create mask for flood fill (use loDiff/hiDiff and fixed connectivity)
-	try {
-		cv.floodFill(
-			src,
-			mask,
-			seedPoint,
-			fillColor,
-			new cv.Rect(),
-			new cv.Scalar(tolerance, tolerance, tolerance, 0),
-			new cv.Scalar(tolerance, tolerance, tolerance, 0),
-			4 /* 4-connectivity */,
-		);
-	} catch (e) {
-		// If floodFill fails (e.g., due to format), continue with color-diff approach only
-		console.warn('floodFill failed, continuing with color-diff removal', e);
-	}
-
-	// Remove pixels matching background color
-	for (let y = 0; y < src.rows; y++) {
-		for (let x = 0; x < src.cols; x++) {
-			const pixel = src.ucharPtr(y, x);
-			const r = pixel[0];
-			const g = pixel[1];
-			const b = pixel[2];
-
-			const diff = Math.abs(r - bgColor.r) + Math.abs(g - bgColor.g) + Math.abs(b - bgColor.b);
-			if (diff < tolerance * 3) {
-				alpha.ucharPtr(y, x)[0] = 0;
-			}
-		}
-	}
-
-	mask.delete();
-}
-
-function detectBackgroundColor(src: any): { r: number; g: number; b: number } {
-	// Sample all four edges to find most common color
-	const edgeSamples: number[][] = [];
-
-	const sampleStep = 5;
-
-	// Top edge
-	for (let x = 0; x < src.cols; x += sampleStep) {
-		const pixel = src.ucharPtr(0, x);
-		edgeSamples.push([pixel[0], pixel[1], pixel[2]]);
-	}
-
-	// Bottom edge
-	for (let x = 0; x < src.cols; x += sampleStep) {
-		const pixel = src.ucharPtr(src.rows - 1, x);
-		edgeSamples.push([pixel[0], pixel[1], pixel[2]]);
-	}
-
-	// Left edge
-	for (let y = 0; y < src.rows; y += sampleStep) {
-		const pixel = src.ucharPtr(y, 0);
-		edgeSamples.push([pixel[0], pixel[1], pixel[2]]);
-	}
-
-	// Right edge
-	for (let y = 0; y < src.rows; y += sampleStep) {
-		const pixel = src.ucharPtr(y, src.cols - 1);
-		edgeSamples.push([pixel[0], pixel[1], pixel[2]]);
-	}
-
-	// Calculate average
-	const avg = edgeSamples.reduce(
-		(acc, color) => ({
-			r: acc.r + color[0],
-			g: acc.g + color[1],
-			b: acc.b + color[2],
-		}),
-		{ r: 0, g: 0, b: 0 },
-	);
-
-	const count = edgeSamples.length;
-	return {
-		r: Math.round(avg.r / count),
-		g: Math.round(avg.g / count),
-		b: Math.round(avg.b / count),
-	};
-}
-
-function removeShadows(cv: any, src: any, alpha: any, tolerance: number): void {
-	// Convert to HSV to better detect shadows
-	const hsv = new cv.Mat();
-	cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
-	cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
-
-	// Split channels
-	const channels = new cv.MatVector();
-	cv.split(hsv, channels);
-
-	// Value channel (brightness)
-	const vChannel = channels.get(2);
-
-	// Threshold to find dark regions (shadows)
-	const shadowMask = new cv.Mat();
-	cv.threshold(vChannel, shadowMask, tolerance * 2.5, 255, cv.THRESH_BINARY_INV);
-
-	// Apply morphological operations to clean up
-	const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
-	cv.morphologyEx(shadowMask, shadowMask, cv.MORPH_OPEN, kernel);
-	cv.morphologyEx(shadowMask, shadowMask, cv.MORPH_CLOSE, kernel);
-
-	// Blur to soften edges
-	cv.GaussianBlur(shadowMask, shadowMask, new cv.Size(5, 5), 0);
-
-	// Apply to alpha with feathering
-	for (let y = 0; y < src.rows; y++) {
-		for (let x = 0; x < src.cols; x++) {
-			const shadowValue = shadowMask.ucharPtr(y, x)[0];
-			if (shadowValue > 128) {
-				const currentAlpha = alpha.ucharPtr(y, x)[0];
-				// Gradually reduce alpha based on shadow intensity
-				const newAlpha = Math.floor(currentAlpha * (1 - shadowValue / 255));
-				alpha.ucharPtr(y, x)[0] = newAlpha;
-			}
-		}
-	}
-
-	hsv.delete();
-	channels.delete();
-	vChannel.delete();
-	shadowMask.delete();
-	kernel.delete();
 }
