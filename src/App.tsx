@@ -347,6 +347,16 @@ function AppContent() {
 											<span>Preview, crop if needed, and download as transparent PNG</span>
 										</li>
 									</ul>
+									{/* add a link to how to use video available on youtube at : https://youtu.be/ujwvJOKHykA */}
+									<div className="mt-16 text-center">
+										<a
+											href="https://youtu.be/ujwvJOKHykA"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-blue-600 hover:underline">
+											Watch the tutorial video
+										</a>
+									</div>
 								</div>
 							</div>
 						</div>
