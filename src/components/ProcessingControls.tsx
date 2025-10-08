@@ -39,23 +39,9 @@ export const ProcessingControls: React.FC<ProcessingControlsProps> = ({
 			</h3>
 
 			<div className="space-y-6">
-				<div className="space-y-4">
-					<label className="flex items-center space-x-3 cursor-pointer group px-4 py-3 rounded-xl hover:bg-blue-50 transition-all duration-200">
-						<input
-							type="checkbox"
-							checked={options.removeCheckered}
-							onChange={(e) => onOptionsChange({ ...options, removeCheckered: e.target.checked })}
-							className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-						/>
-						<span className="text-gray-700 group-hover:text-gray-900 transition-colors flex-1">
-							Remove checkered pattern
-						</span>
-					</label>
-				</div>
-
-				<div className="pt-4 border-t border-gray-200">
+				<div>
 					<label className="block text-sm font-medium text-gray-800 mb-4">
-						Tolerance: <span className="text-blue-600 font-bold text-lg">{options.tolerance}</span>
+						Color Matching Sensitivity
 					</label>
 					<input
 						type="range"
@@ -69,11 +55,11 @@ export const ProcessingControls: React.FC<ProcessingControlsProps> = ({
 						}}
 					/>
 					<div className="flex justify-between text-xs text-gray-600 mt-2">
-						<span>Strict</span>
-						<span>Lenient</span>
+						<span>Match exact colors</span>
+						<span>Match similar colors</span>
 					</div>
 					<p className="text-xs text-gray-600 mt-3 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-						Higher tolerance removes more similar colors
+						Higher values will remove colors similar to the selected/detected ones, including blur and anti-aliased edges
 					</p>
 				</div>
 
@@ -108,54 +94,41 @@ export const ProcessingControls: React.FC<ProcessingControlsProps> = ({
 					</div>
 				)}
 
-				<div className="space-y-3">
-					<button
-						onClick={onPreview}
-						disabled={disabled}
-						className="relative w-full group overflow-hidden bg-white hover:bg-gray-50 border-2 border-gray-300 hover:border-blue-500 text-gray-700 hover:text-blue-600 py-3 px-6 rounded-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-						<div className="flex items-center justify-center gap-2">
-							{showingPreview ? (
-								<svg
-									className="w-5 h-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor">
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-									/>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-									/>
-								</svg>
-							) : (
-								<svg
-									className="w-5 h-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor">
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-									/>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-									/>
-								</svg>
-							)}
-							<span>{showingPreview ? 'Hide Preview' : 'Preview Removal'}</span>
+				<div className="space-y-3 pt-4 border-t border-gray-200">
+					{/* Toggle for Show Removal Mask */}
+					<label className="flex items-center justify-between cursor-pointer group p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200">
+						<span className="text-gray-800 font-medium flex items-center gap-2">
+							<svg
+								className="w-5 h-5 text-blue-600"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor">
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+								/>
+							</svg>
+							Show Removal Mask
+						</span>
+						<div className="relative">
+							<input
+								type="checkbox"
+								checked={showingPreview}
+								onChange={onPreview}
+								disabled={disabled}
+								className="sr-only peer"
+							/>
+							<div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
 						</div>
-					</button>
+					</label>
 
 					<button
 						onClick={onProcess}

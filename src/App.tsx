@@ -26,6 +26,13 @@ function AppContent() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [previewMask, setPreviewMask] = useState<string | null>(null);
 	const [showPreview, setShowPreview] = useState(false);
+	const [cursorMagnifier, setCursorMagnifier] = useState<{
+		x: number;
+		y: number;
+		imgX: number;
+		imgY: number;
+		visible: boolean;
+	} | null>(null);
 
 	const handleImageLoad = useCallback((image: HTMLImageElement, file: File) => {
 		setOriginalImage(image);
@@ -142,11 +149,9 @@ function AppContent() {
 						);
 
 						if (exists) {
-							console.log('Color already selected:', newColor);
 							return prev; // No change
 						}
 
-						console.log('Adding new color:', newColor, 'Total colors:', (prev.selectedColors?.length || 0) + 1);
 						return {
 							...prev,
 							selectedColors: [...(prev.selectedColors || []), newColor],
@@ -169,6 +174,33 @@ function AppContent() {
 		}));
 	}, []);
 
+	// Handle mouse move for magnifier
+	const handleImageMouseMove = useCallback(
+		(event: React.MouseEvent<HTMLImageElement>) => {
+			if (!originalImage) return;
+
+			const img = event.currentTarget;
+			const rect = img.getBoundingClientRect();
+			const x = event.clientX - rect.left;
+			const y = event.clientY - rect.top;
+			const imgX = Math.floor((x / rect.width) * originalImage.naturalWidth);
+			const imgY = Math.floor((y / rect.height) * originalImage.naturalHeight);
+
+			setCursorMagnifier({
+				x: event.clientX,
+				y: event.clientY,
+				imgX,
+				imgY,
+				visible: true,
+			});
+		},
+		[originalImage],
+	);
+
+	const handleImageMouseLeave = useCallback(() => {
+		setCursorMagnifier(null);
+	}, []);
+
 	return (
 		<div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 relative overflow-hidden">
 			{/* Animated background elements */}
@@ -181,17 +213,17 @@ function AppContent() {
 
 			<div className="relative z-10 min-h-screen flex flex-col">
 				{/* Header */}
-				<header className="w-full py-8 px-4 text-center">
+				<header className="w-full py-1 px-4 text-center">
 					<h1 className="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 mb-3 tracking-tight drop-shadow-lg">
-						Background Remover
+						Remove BG
 					</h1>
-					<p className="text-lg text-gray-700 max-w-2xl mx-auto font-medium">
+					<p className="text-md text-gray-700 max-w-2xl mx-auto font-medium">
 						Remove checkered patterns and backgrounds from your images — 100% client-side
 					</p>
 				</header>
 
 				{/* Main Content Area */}
-				<main className="flex-1 flex items-center justify-center px-4 py-8">
+				<main className="flex-1 flex  justify-center px-4 py-2">
 					{!loaded ? (
 						<div className="text-center">
 							<div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mb-6"></div>
@@ -200,40 +232,44 @@ function AppContent() {
 						</div>
 					) : !originalImage ? (
 						/* Initial Upload State - Centered */
-						<div className="w-full max-w-2xl mx-auto">
+						<div className="w-full max-w-6xl mx-auto mt-6">
 							<div className="text-center mb-8">
 								<h2 className="text-3xl font-bold text-gray-800 mb-3">Get Started</h2>
 								<p className="text-gray-600 text-lg">Upload an image to remove its background instantly</p>
 							</div>
-							<ImageUploader onImageLoad={handleImageLoad} />
-							<div className="mt-12 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg">
-								<h3 className="text-gray-800 font-semibold text-lg mb-4 flex items-center gap-2">
-									<svg
-										className="w-5 h-5 text-blue-600"
-										fill="currentColor"
-										viewBox="0 0 20 20">
-										<path
-											fillRule="evenodd"
-											d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-											clipRule="evenodd"
-										/>
-									</svg>
-									How it works
-								</h3>
-								<ul className="text-gray-700 space-y-3">
-									<li className="flex items-start gap-3">
-										<span className="text-blue-600 font-bold">1.</span>
-										<span>Upload a PNG or JPG image with a checkered or solid background</span>
-									</li>
-									<li className="flex items-start gap-3">
-										<span className="text-blue-600 font-bold">2.</span>
-										<span>Choose processing options and adjust tolerance</span>
-									</li>
-									<li className="flex items-start gap-3">
-										<span className="text-blue-600 font-bold">3.</span>
-										<span>Preview, crop if needed, and download as transparent PNG</span>
-									</li>
-								</ul>
+							<div className="flex flex-row gap-8">
+								<div className="flex-1">
+									<ImageUploader onImageLoad={handleImageLoad} />
+								</div>
+								<div className="flex-1 mt-4 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg">
+									<h3 className="text-gray-800 font-semibold text-lg mb-4 flex items-center gap-2">
+										<svg
+											className="w-5 h-5 text-blue-600"
+											fill="currentColor"
+											viewBox="0 0 20 20">
+											<path
+												fillRule="evenodd"
+												d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+												clipRule="evenodd"
+											/>
+										</svg>
+										How it works
+									</h3>
+									<ul className="text-gray-700 space-y-3">
+										<li className="flex items-start gap-3">
+											<span className="text-blue-600 font-bold">1.</span>
+											<span>Upload a PNG or JPG image with a checkered or solid background</span>
+										</li>
+										<li className="flex items-start gap-3">
+											<span className="text-blue-600 font-bold">2.</span>
+											<span>Choose processing options and adjust tolerance</span>
+										</li>
+										<li className="flex items-start gap-3">
+											<span className="text-blue-600 font-bold">3.</span>
+											<span>Preview, crop if needed, and download as transparent PNG</span>
+										</li>
+									</ul>
+								</div>
 							</div>
 						</div>
 					) : (
@@ -268,16 +304,86 @@ function AppContent() {
 												alt="Original"
 												className="max-w-full h-auto max-h-[600px] object-contain cursor-crosshair"
 												onClick={handleImageClick}
+												onMouseMove={handleImageMouseMove}
+												onMouseLeave={handleImageMouseLeave}
 												title="Click to pick a background color to remove"
 											/>
+											{cursorMagnifier && cursorMagnifier.visible && originalImage && cv && (
+												<div
+													className="fixed pointer-events-none z-50"
+													style={{
+														left: cursorMagnifier.x - 40,
+														top: cursorMagnifier.y - 168 - 80,
+													}}>
+													<div className="relative w-32 h-32 rounded-full border-4 border-blue-500 shadow-2xl overflow-hidden bg-white">
+														<canvas
+															ref={(canvas) => {
+																if (!canvas || !originalImage) return;
+																const ctx = canvas.getContext('2d');
+																if (!ctx) return;
+
+																const radius = 16;
+																const scale = 4;
+																canvas.width = 128;
+																canvas.height = 128;
+
+																// Draw magnified portion
+																const sx = Math.max(0, cursorMagnifier.imgX - radius);
+																const sy = Math.max(0, cursorMagnifier.imgY - radius);
+																const sw = Math.min(radius * 2, originalImage.naturalWidth - sx);
+																const sh = Math.min(radius * 2, originalImage.naturalHeight - sy);
+
+																ctx.drawImage(originalImage, sx, sy, sw, sh, 0, 0, sw * scale, sh * scale);
+
+																// Draw crosshair
+																ctx.strokeStyle = '#3b82f6';
+																ctx.lineWidth = 2;
+																ctx.beginPath();
+																ctx.moveTo(64, 0);
+																ctx.lineTo(64, 128);
+																ctx.moveTo(0, 64);
+																ctx.lineTo(128, 64);
+																ctx.stroke();
+
+																// Draw center pixel indicator
+																ctx.fillStyle = '#3b82f6';
+																ctx.fillRect(62, 62, 4, 4);
+															}}
+															width={128}
+															height={128}
+															className="w-full h-full"
+														/>
+													</div>
+													{/* Color info */}
+													<div className="mt-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-lg shadow-lg text-center font-mono">
+														{(() => {
+															try {
+																const src = cv.imread(originalImage);
+																if (
+																	cursorMagnifier.imgX >= 0 &&
+																	cursorMagnifier.imgX < src.cols &&
+																	cursorMagnifier.imgY >= 0 &&
+																	cursorMagnifier.imgY < src.rows
+																) {
+																	const pixel = src.ucharPtr(cursorMagnifier.imgY, cursorMagnifier.imgX);
+																	const color = `RGB(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+																	src.delete();
+																	return color;
+																}
+																src.delete();
+																return 'Out of bounds';
+															} catch {
+																return 'Error';
+															}
+														})()}
+													</div>
+												</div>
+											)}
 											{showPreview && (
 												<div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded shadow-lg">
 													Preview Mode
 												</div>
 											)}
-											<div className="absolute bottom-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded shadow-lg">
-												Click to pick color
-											</div>
 										</div>
 										<p className="text-gray-600 text-sm mt-3 truncate text-center">{fileName}</p>
 									</div>
@@ -318,19 +424,19 @@ function AppContent() {
 										<ul className="text-sm text-gray-700 space-y-2">
 											<li className="flex items-start gap-2">
 												<span className="text-blue-600 mt-0.5">•</span>
-												<span>Works best with standard gray checkered patterns</span>
+												<span>Automatically detects and removes checkered patterns from edges</span>
 											</li>
 											<li className="flex items-start gap-2">
 												<span className="text-blue-600 mt-0.5">•</span>
-												<span>Adjust tolerance if background isn't fully removed</span>
+												<span>Click the image to manually pick additional background colors</span>
 											</li>
 											<li className="flex items-start gap-2">
 												<span className="text-blue-600 mt-0.5">•</span>
-												<span>Shadow removal works best on light backgrounds</span>
+												<span>Use the preview mask to see what will be removed before processing</span>
 											</li>
 											<li className="flex items-start gap-2">
 												<span className="text-blue-600 mt-0.5">•</span>
-												<span>All processing happens in your browser — no uploads!</span>
+												<span>All processing happens locally in your browser — no uploads!</span>
 											</li>
 										</ul>
 									</div>

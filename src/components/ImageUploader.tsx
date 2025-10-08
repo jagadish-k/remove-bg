@@ -46,7 +46,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageLoad }) => 
 		<div
 			onDrop={handleDrop}
 			onDragOver={handleDragOver}
-			className="relative border-2 border-dashed border-gray-300 rounded-2xl p-12 md:p-16 text-center hover:border-blue-500 bg-white/80 backdrop-blur-sm hover:bg-blue-50 transition-all duration-300 cursor-pointer group overflow-hidden shadow-lg">
+			className="relative border-2 border-dashed border-gray-300 rounded-2xl p-12 md:p-16 text-center hover:border-blue-500 bg-gray-700 backdrop-blur-sm hover:bg-blue-50 transition-all duration-300 cursor-pointer group overflow-hidden shadow-lg">
 			{/* Glow effect on hover */}
 			<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
 				<div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 blur-xl"></div>
@@ -64,9 +64,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageLoad }) => 
 				className="cursor-pointer block relative z-10">
 				<div className="space-y-4">
 					<div className="relative inline-flex items-center justify-center">
-						<div className="absolute w-24 h-24 bg-blue-500/20 blur-2xl rounded-full group-hover:bg-blue-500/30 transition-all duration-300"></div>
+						<div className="absolute w-24 h-24 bg-gray-500 blur-2xl rounded-full group-hover:bg-blue-500/30 transition-all duration-300"></div>
 						<svg
-							className="relative h-20 w-20 text-blue-500 group-hover:text-blue-600 transition-all duration-300 group-hover:scale-110"
+							className="relative h-20 w-20 text-blue-200 group-hover:text-blue-600 transition-all duration-300 group-hover:scale-110"
 							stroke="currentColor"
 							fill="none"
 							viewBox="0 0 48 48">
@@ -80,12 +80,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageLoad }) => 
 					</div>
 					<div className="space-y-2">
 						<div className="text-gray-800 text-lg">
-							<span className="font-bold text-blue-600 group-hover:text-blue-700 transition-colors">
-								Click to upload
-							</span>{' '}
-							<span className="text-gray-600">or drag and drop</span>
+							<span className="font-bold text-white group-hover:text-blue-700 transition-colors">Click to upload</span>{' '}
+							<span className="text-gray-100 group-hover:text-blue-700 transition-colors">or drag and drop</span>
 						</div>
-						<p className="text-sm text-gray-500">PNG or JPG files (max 10MB)</p>
+						<p className="text-sm text-gray-50 group-hover:text-blue-700 transition-colors">
+							PNG or JPG files (max 10MB)
+						</p>
 					</div>
 				</div>
 			</label>
