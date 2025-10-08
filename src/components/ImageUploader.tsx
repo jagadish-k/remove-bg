@@ -42,10 +42,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageLoad }) => 
 		event.preventDefault();
 	};
 
+	const handleClick = () => {
+		document.getElementById('file-upload')?.click();
+	};
+
 	return (
 		<div
+			id="drop-area"
 			onDrop={handleDrop}
 			onDragOver={handleDragOver}
+			onClick={handleClick}
 			className="relative border-2 border-dashed border-gray-300 rounded-2xl p-12 md:p-16 text-center hover:border-blue-500 bg-gray-700 backdrop-blur-sm hover:bg-blue-50 transition-all duration-300 cursor-pointer group overflow-hidden shadow-lg">
 			{/* Glow effect on hover */}
 			<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -61,6 +67,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageLoad }) => 
 			/>
 			<label
 				htmlFor="file-upload"
+				onClick={(e) => e.stopPropagation()}
 				className="cursor-pointer block relative z-10">
 				<div className="space-y-4">
 					<div className="relative inline-flex items-center justify-center">

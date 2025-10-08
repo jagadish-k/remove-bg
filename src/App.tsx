@@ -214,8 +214,85 @@ function AppContent() {
 			<div className="relative z-10 min-h-screen flex flex-col">
 				{/* Header */}
 				<header className="w-full py-1 px-4 text-center">
-					<h1 className="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 mb-3 tracking-tight drop-shadow-lg">
-						Remove BG
+					<h1 className="text-5xl md:text-6xl font-extrabold mb-3 tracking-tight drop-shadow-lg flex flex-row justify-center items-center gap-3">
+						<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+							Remove{' '}
+						</span>
+						<svg
+							className="inline-block align-baseline"
+							width="260"
+							height="70"
+							viewBox="0 0 260 72"
+							xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<pattern
+									id="headerCheckerPattern"
+									x="0"
+									y="0"
+									width="8"
+									height="8"
+									patternUnits="userSpaceOnUse">
+									<rect
+										x="0"
+										y="0"
+										width="4"
+										height="4"
+										fill="#D1D5DB"
+									/>
+									<rect
+										x="4"
+										y="0"
+										width="4"
+										height="4"
+										fill="#F3F4F6"
+									/>
+									<rect
+										x="0"
+										y="4"
+										width="4"
+										height="4"
+										fill="#F3F4F6"
+									/>
+									<rect
+										x="4"
+										y="4"
+										width="4"
+										height="4"
+										fill="#D1D5DB"
+									/>
+								</pattern>
+								<linearGradient
+									id="bgGradient"
+									x1="0%"
+									y1="0%"
+									x2="100%"
+									y2="100%">
+									<stop
+										offset="0%"
+										stopColor="#2563EB"
+									/>
+									<stop
+										offset="50%"
+										stopColor="#4F46E5"
+									/>
+									<stop
+										offset="100%"
+										stopColor="#7C3AED"
+									/>
+								</linearGradient>
+							</defs>
+							<text
+								x="0"
+								y="70"
+								font-size="100"
+								font-weight="400"
+								font-family="'Black Ops One', system-ui, -apple-system, sans-serif"
+								fill="url(#headerCheckerPattern)"
+								stroke="url(#bgGradient)"
+								stroke-width="1">
+								BG
+							</text>
+						</svg>
 					</h1>
 					<p className="text-md text-gray-700 max-w-2xl mx-auto font-medium">
 						Remove checkered patterns and backgrounds from your images — 100% client-side
@@ -312,9 +389,32 @@ function AppContent() {
 												<div
 													className="fixed pointer-events-none z-50"
 													style={{
-														left: cursorMagnifier.x - 40,
-														top: cursorMagnifier.y - 168 - 80,
+														left: cursorMagnifier.x - 100,
+														top: cursorMagnifier.y - 168 - 110,
 													}}>
+													{/* Color info */}
+													<div className="mt-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-lg shadow-lg text-center font-mono">
+														{(() => {
+															try {
+																const src = cv.imread(originalImage);
+																if (
+																	cursorMagnifier.imgX >= 0 &&
+																	cursorMagnifier.imgX < src.cols &&
+																	cursorMagnifier.imgY >= 0 &&
+																	cursorMagnifier.imgY < src.rows
+																) {
+																	const pixel = src.ucharPtr(cursorMagnifier.imgY, cursorMagnifier.imgX);
+																	const color = `RGB(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+																	src.delete();
+																	return color;
+																}
+																src.delete();
+																return 'Out of bounds';
+															} catch {
+																return 'Error';
+															}
+														})()}
+													</div>
 													<div className="relative w-32 h-32 rounded-full border-4 border-blue-500 shadow-2xl overflow-hidden bg-white">
 														<canvas
 															ref={(canvas) => {
@@ -353,29 +453,6 @@ function AppContent() {
 															height={128}
 															className="w-full h-full"
 														/>
-													</div>
-													{/* Color info */}
-													<div className="mt-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-lg shadow-lg text-center font-mono">
-														{(() => {
-															try {
-																const src = cv.imread(originalImage);
-																if (
-																	cursorMagnifier.imgX >= 0 &&
-																	cursorMagnifier.imgX < src.cols &&
-																	cursorMagnifier.imgY >= 0 &&
-																	cursorMagnifier.imgY < src.rows
-																) {
-																	const pixel = src.ucharPtr(cursorMagnifier.imgY, cursorMagnifier.imgX);
-																	const color = `RGB(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-																	src.delete();
-																	return color;
-																}
-																src.delete();
-																return 'Out of bounds';
-															} catch {
-																return 'Error';
-															}
-														})()}
 													</div>
 												</div>
 											)}
@@ -455,7 +532,42 @@ function AppContent() {
 
 				{/* Footer */}
 				<footer className="w-full text-center py-6 text-sm text-gray-600 border-t border-gray-200 bg-white/50">
-					<p>Built with React, TypeScript, and OpenCV.js • All processing is done locally in your browser</p>
+					<div className="max-w-4xl mx-auto px-4 space-y-6">
+						{/* Buy Me a Coffee Section */}
+						<div className="relative bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-xl overflow-hidden">
+							{/* QR Code Background */}
+							<div className="absolute right-0 top-2 bottom-2 w-24 opacity-80 flex items-center justify-center">
+								<img
+									src="/src/assets/buy-me-a-coffee-jagadish-kasi.png"
+									alt=""
+									className="h-16 w-auto"
+								/>
+							</div>
+
+							{/* Content */}
+							<div className="relative py-3 px-4 pr-28 text-left">
+								<p className="text-sm text-gray-700 leading-relaxed">
+									<span className="font-semibold text-gray-800">
+										Love this tool? ☕<br />
+									</span>{' '}
+									If this saved you time,{' '}
+									<a
+										href="https://buymeacoffee.com/jagadishk"
+										target="_blank"
+										rel="noopener noreferrer"
+										className="font-semibold text-orange-500 hover:text-orange-600 underline decoration-dotted underline-offset-2 transition-colors">
+										consider buying me a coffee
+									</a>{' '}
+									— your support keeps this free for everyone.
+								</p>
+							</div>
+						</div>
+
+						{/* Credits */}
+						<p className="text-gray-600 text-xs">
+							Built with React, TypeScript, and OpenCV.js • All processing is done locally in your browser
+						</p>
+					</div>
 				</footer>
 			</div>
 		</div>
