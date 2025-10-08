@@ -534,33 +534,98 @@ function AppContent() {
 				{/* Footer */}
 				<footer className="w-full text-center py-6 text-sm text-gray-600 border-t border-gray-200 bg-white/50">
 					<div className="max-w-4xl mx-auto px-4 space-y-6">
-						{/* Buy Me a Coffee Section */}
-						<div className="relative bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-xl overflow-hidden">
-							{/* QR Code Background */}
-							<div className="absolute right-0 top-2 bottom-2 w-24 opacity-80 flex items-center justify-center">
-								<img
-									src={buyMeACoffeeImg}
-									alt=""
-									className="h-16 w-auto"
-								/>
-							</div>
+						{/* Product Hunt + Buy Me a Coffee Row */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:max-w-3xl mx-auto items-stretch">
+							{/* Product Hunt badge (left) */}
+							<div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center gap-4">
+								<a
+									href="https://www.producthunt.com/products/remove-bg-4?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-remove&#0045;bg&#0045;4"
+									target="_blank"
+									rel="noopener noreferrer">
+									<img
+										src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1024181&theme=light&t=1759901638789"
+										alt="Remove&#0032;BG - Remove&#0032;checkered&#0032;backgrounds&#0032;instantly&#0032;&#0045;&#0032;100&#0037;&#0032;client&#0045;side | Product Hunt"
+										style={{ width: '250px', height: '54px' }}
+										width={250}
+										height={54}
+									/>
+								</a>
 
-							{/* Content */}
-							<div className="relative py-3 px-4 pr-28 text-left">
-								<p className="text-sm text-gray-700 leading-relaxed">
-									<span className="font-semibold text-gray-800">
-										Love this tool? ☕<br />
-									</span>{' '}
-									If this saved you time,{' '}
+								{/* Icon links */}
+								<div className="grid grid-cols-3 gap-3">
 									<a
-										href="https://buymeacoffee.com/jagadishk"
+										href="https://github.com/jagadish-k/remove-bg"
 										target="_blank"
 										rel="noopener noreferrer"
-										className="font-semibold text-orange-500 hover:text-orange-600 underline decoration-dotted underline-offset-2 transition-colors">
-										consider buying me a coffee
-									</a>{' '}
-									— your support keeps this free for everyone.
-								</p>
+										aria-label="GitHub Repository"
+										className="text-gray-600 hover:text-blue-600 transition-colors">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+											className="w-6 h-6">
+											<path d="M12 .5C5.73.5.5 5.73.5 12c0 5.09 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.35-1.3-1.71-1.3-1.71-1.06-.73.08-.72.08-.72 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.71 0-1.26.45-2.29 1.2-3.1-.12-.3-.52-1.53.11-3.18 0 0 .98-.31 3.2 1.19a11.1 11.1 0 0 1 5.82 0c2.22-1.5 3.2-1.19 3.2-1.19.63 1.65.23 2.88.11 3.18.75.81 1.2 1.84 1.2 3.1 0 4.44-2.7 5.41-5.28 5.7.42.36.8 1.08.8 2.17 0 1.56-.01 2.82-.01 3.2 0 .31.21.68.8.56A10.5 10.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z" />
+										</svg>
+									</a>
+									<a
+										href="https://www.linkedin.com/in/jagzviruz/"
+										target="_blank"
+										rel="noopener noreferrer"
+										aria-label="LinkedIn Profile"
+										className="text-gray-600 hover:text-blue-600 transition-colors">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+											className="w-6 h-6">
+											<path d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8h4V23h-4V8zM8.5 8h3.8v2.05h.05c.53-1 1.82-2.05 3.75-2.05 4.01 0 4.75 2.64 4.75 6.08V23h-4v-6.57c0-1.57-.03-3.6-2.2-3.6-2.21 0-2.55 1.72-2.55 3.5V23h-4V8z" />
+										</svg>
+									</a>
+									<a
+										href="https://x.com/jagzviruz"
+										target="_blank"
+										rel="noopener noreferrer"
+										aria-label="X (Twitter) Profile"
+										className="text-gray-600 hover:text-blue-600 transition-colors">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+											className="w-6 h-6">
+											<path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.02-6.02L5 22H1.744l8.27-9.46L2 2h6.844l4.54 5.54L18.244 2zM16.9 20h1.9L7.4 4h-1.9L16.9 20z" />
+										</svg>
+									</a>
+								</div>
+							</div>
+
+							{/* Buy Me a Coffee Section (right) */}
+							<div className="relative bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 rounded-xl overflow-hidden">
+								{/* QR Code Background */}
+								<div className="absolute right-0 top-2 bottom-2 w-24 opacity-80 flex items-center justify-center">
+									<img
+										src={buyMeACoffeeImg}
+										alt=""
+										className="h-16 w-auto"
+									/>
+								</div>
+
+								{/* Content */}
+								<div className="relative py-3 px-4 pr-28 text-left">
+									<p className="text-sm text-gray-700 leading-relaxed">
+										<span className="font-semibold text-gray-800">
+											Love this tool? ☕<br />
+										</span>{' '}
+										If this saved you time,{' '}
+										<a
+											href="https://buymeacoffee.com/jagadishk"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="font-semibold text-orange-500 hover:text-orange-600 underline decoration-dotted underline-offset-2 transition-colors">
+											consider buying me a coffee
+										</a>{' '}
+										— your support keeps this free for everyone.
+									</p>
+								</div>
 							</div>
 						</div>
 
