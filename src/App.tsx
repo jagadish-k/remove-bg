@@ -315,11 +315,11 @@ function AppContent() {
 								<h2 className="text-3xl font-bold text-gray-800 mb-3">Get Started</h2>
 								<p className="text-gray-600 text-lg">Upload an image to remove its background instantly</p>
 							</div>
-							<div className="flex flex-row gap-8">
-								<div className="flex-1">
+							<div className="gap-2 sm:gap-8 grid grid-cols-1 sm:grid-cols-2">
+								<div className="flex-col">
 									<ImageUploader onImageLoad={handleImageLoad} />
 								</div>
-								<div className="flex-1 mt-4 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg">
+								<div className="flex-col bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-lg">
 									<h3 className="text-gray-800 font-semibold text-lg mb-4 flex items-center gap-2">
 										<svg
 											className="w-5 h-5 text-blue-600"
