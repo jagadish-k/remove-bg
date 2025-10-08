@@ -196,7 +196,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({ imageSrc, open, onClos
 							{cropArea && canvasRef.current && (
 								<>
 									{(() => {
-										const rect = canvasRef.current.getBoundingClientRect();
+										// const rect = canvasRef.current.getBoundingClientRect();
 										const img = canvasRef.current.querySelector('img');
 										if (!img) return null;
 										const imgRect = img.getBoundingClientRect();

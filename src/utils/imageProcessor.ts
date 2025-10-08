@@ -224,7 +224,7 @@ export const processImage = (cv: any, imageElement: HTMLImageElement, options: P
 };
 
 function removeCheckeredPattern(
-	cv: any,
+	_cv: any,
 	src: any,
 	alpha: any,
 	tolerance: number,
