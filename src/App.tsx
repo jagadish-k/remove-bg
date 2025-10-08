@@ -4,6 +4,7 @@ import { ImageUploader } from './components/ImageUploader';
 import { ProcessingControls } from './components/ProcessingControls';
 import { processImage, generatePreviewMask, type ProcessingOptions } from './utils/imageProcessor';
 import { ResultModal } from './components/ResultModal';
+import buyMeACoffeeImg from './assets/buy-me-a-coffee-jagadish-kasi.png';
 
 function AppContent() {
 	const handleReset = useCallback(() => {
@@ -538,7 +539,7 @@ function AppContent() {
 							{/* QR Code Background */}
 							<div className="absolute right-0 top-2 bottom-2 w-24 opacity-80 flex items-center justify-center">
 								<img
-									src="/src/assets/buy-me-a-coffee-jagadish-kasi.png"
+									src={buyMeACoffeeImg}
 									alt=""
 									className="h-16 w-auto"
 								/>

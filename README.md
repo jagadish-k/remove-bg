@@ -14,7 +14,7 @@ A client-side React application that removes checkered patterns and solid backgr
 
 ## Live Demo
 
-Visit: `https://jagadish-k.github.io/bg-remover/`
+Visit: `https://jagadish-k.github.io/remove-bg/`
 
 ## Local Development
 
